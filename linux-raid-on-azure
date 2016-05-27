@@ -1,0 +1,48 @@
+# Create working and backup copies of fstab
+cp /etc/fstab ~/
+sudo cp /etc/fstab /etc/fstab.original
+
+# Enumerate data disks attached to VM
+disks=(`lsscsi | grep '[56]:0:0:' | awk '{print $7}'`)
+
+# Set value to be used for filesystem mount point folder
+mp='data1'
+
+# Set value to be used for filesystem label - max length 16 chars
+fslabel=$(hostname)-$mp
+
+# Set value for filesystem barriers - 0 if using Premium Storage w/ ReadOnly or NoCache; 1 otherwise
+b=0
+
+# Set value for initial RAID command string used to span multiple data disks
+RAID_CMD="sudo mdadm --create /dev/md${#disks[@]} --level 0 --raid-devices ${#disks[@]} "
+
+# Loop through each data disk, fdisk and add to RAID command string
+i=0
+for d in "${disks[@]}"; do
+    (echo n; echo p; echo 1; echo ; echo ; echo t; echo fd; echo p; echo w;) | sudo fdisk ${d}
+    RAID_CMD+="${d}1 "
+    i=$[$i+1]
+done
+
+# Format and label filesystem
+sudo mkfs.ext4 /dev/md${#disks[@]} -L ${fslabel}
+
+# Set value of UUID for new filesystem
+uuid=$(sudo blkid -p /dev/md${#disks[@]} | grep -oP '[-a-z0-9]{36}')
+
+# Create mount point folder
+sudo mkdir -p /media/${mp}
+
+# Add new filesystem to working copy of fstab
+echo "UUID=${uuid} /media/${mp} ext4 defaults,noatime,barrier=${b} 0 0" >> ~/fstab
+
+# Move working copy of fstab to etc folder
+sudo mv ~/fstab /etc/fstab
+
+# Mount all unmounted filesystems
+sudo mount -a
+
+# After initial provisioning, use these commands to obtain disk device or UUID of filesystem based on label
+disk=$(blkid -L ${fslabel})
+uuid=$(blkid | grep "LABEL=\"${fslabel}\"" | grep -oP '[-a-z0-9]{36}')
