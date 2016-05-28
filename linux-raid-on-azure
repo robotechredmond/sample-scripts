@@ -3,7 +3,7 @@ cp /etc/fstab ~/
 sudo cp /etc/fstab /etc/fstab.original
 
 # Enumerate data disks attached to VM
-disks=(`lsscsi | grep '[56]:0:0:' | awk '{print $7}'`)
+disks=(`lsscsi | grep '[456]:0:0:' | awk '{print $7}'`)
 
 # Set value to be used for filesystem mount point folder
 mp='data1'
