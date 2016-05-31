@@ -14,7 +14,7 @@ mp='data1'
 # Set value to be used for filesystem label - max length 16 chars
 fslabel=$(hostname)-$mp
 
-# Set value for filesystem barriers - 0 if using Premium Storage w/ ReadOnly or NoCache; 1 otherwise
+# Set value for filesystem barriers - 0 if using Premium Storage w/ ReadOnly Caching or NoCache; 1 otherwise
 b=0
 
 # Set value for initial RAID command string used to span multiple data disks
