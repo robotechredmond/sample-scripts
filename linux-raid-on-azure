@@ -23,10 +23,14 @@ RAID_CMD="sudo mdadm --create /dev/md${#datadisks[@]} --level 0 --raid-devices $
 # Loop through each data disk, fdisk and add to RAID command string
 i=0
 for d in "${datadisks[@]}"; do
-    (echo n; echo p; echo 1; echo ; echo ; echo t; echo fd; echo p; echo w;) | sudo fdisk ${d}
-    RAID_CMD+="${d}1 "
+    disk="/dev/${d}"
+    (echo n; echo p; echo 1; echo ; echo ; echo t; echo fd; echo p; echo w;) | sudo fdisk ${disk}
+    RAID_CMD+="${disk}1 "
     i=$[$i+1]
 done
+
+# Build RAID device
+eval "$RAID_CMD"
 
 # Format and label filesystem
 sudo mkfs.ext4 /dev/md${#datadisks[@]} -L ${fslabel}
