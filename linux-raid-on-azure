@@ -6,7 +6,7 @@ sudo cp /etc/fstab /etc/fstab.original
 # Leverages udev rule for Azure storage devices located at https://github.com/Azure/WALinuxAgent/blob/2.0/config/66-azure-storage.rules
 attached=`basename -a $(find /sys/class/block -name 'sd[a-z]')`
 reserved=`basename -a $(readlink -f /dev/disk/azure/root /dev/disk/azure/resource)`
-datadisks="${attached[@]/$reserved}"
+datadisks=(${attached[@]/$reserved})
 
 # Set value to be used for filesystem mount point folder
 mp='data1'
