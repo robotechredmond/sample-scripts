@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# Create working and backup copies of fstab
-cp /etc/fstab ~/
+# Create backup copy of fstab
 cp /etc/fstab /etc/fstab.original
 
 # Enumerate data disks attached to VM 
@@ -44,10 +43,7 @@ uuid=$(blkid -p /dev/md${#datadisks[@]} | grep -oP '[-a-z0-9]{36}')
 mkdir -p /media/${mp}
 
 # Add new filesystem to working copy of fstab
-echo "UUID=${uuid} /media/${mp} ext4 defaults,noatime,barrier=${b} 0 0" >> ~/fstab
-
-# Move working copy of fstab to etc folder
-mv ~/fstab /etc/fstab
+echo "UUID=${uuid} /media/${mp} ext4 defaults,noatime,barrier=${b} 0 0" >> /etc/fstab
 
 # Mount all unmounted filesystems
 mount -a
