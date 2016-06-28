@@ -2,7 +2,7 @@
 
 # Create working and backup copies of fstab
 cp /etc/fstab ~/
-sudo cp /etc/fstab /etc/fstab.original
+cp /etc/fstab /etc/fstab.original
 
 # Enumerate data disks attached to VM 
 # Leverages udev rules for Azure storage devices located at https://github.com/Azure/WALinuxAgent/blob/2.0/config/66-azure-storage.rules
