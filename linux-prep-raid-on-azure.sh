@@ -21,7 +21,7 @@ datadisks=(${attached[@]/$reserved})
 mp='data1'
 
 # Set value to be used for filesystem label - max length 16 chars
-fslabel=$(hostname|cut -c1-10)-$mp
+fslabel=$(hostname | cut -c1-10)-$mp
 
 # Set value for filesystem barriers - 0 if using Premium Storage w/ ReadOnly Caching or NoCache; 1 otherwise
 b=0
