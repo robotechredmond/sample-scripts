@@ -4,9 +4,12 @@
 set -o nounset
 set -o errexit
 
-# Install mdadm
+# Install mdadm on Ubuntu
 apt-get update -y
 apt-get install mdadm -y --no-install-recommends
+
+# Install mdadm on Centos
+yum -y install mdadm
 
 # Create backup copy of fstab
 cp /etc/fstab /etc/fstab.original
