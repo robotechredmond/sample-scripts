@@ -95,6 +95,7 @@ vmStorageKind='Storage'
 
 vmNum=0
 vmNames=()
+vmNameInFd=""
 
 while true
 do 
@@ -102,6 +103,7 @@ do
     vmName="${vmNamePrefix}${vmNum}"
     vmStorageName="${vmName}sa"
     vmNicName="${vmName}-nic-0"
+    vmNames[$vmNum]=""
     azure storage account create --resource-group ${rgName} ${vmStorageName} --location ${locationName} --sku-name ${vmStorageSku} --kind ${vmStorageKind}
     azure network nic create --resource-group ${rgName} --name ${vmNicName} --subnet-id ${subnetId} --location ${locationName}
     azure vm create --resource-group ${rgName} --name ${vmName} --location ${locationName} --storage-account-name ${vmStorageName} --os-type ${vmOs} --image-urn ${vmImage} --admin-username ${vmUser} --admin-password ${vmPwd} --vm-size ${vmSize} --nic-name ${vmNicName} --availset-name ${asName}
@@ -109,6 +111,7 @@ do
         vmNames[$vmNum]=${vmName}
         vmFd=$(azure vm get-instance-view ${rgName} ${vmName} --json | jq -r '.instanceView.platformFaultDomain')
         if [[ $vmFd == $fd ]]; then
+            vmNameInFd=${vmName}
             break
         fi
     fi
@@ -116,7 +119,7 @@ done
 
 # Cleanup resources for new VMs that are not in desired FD
 
-while [ $vmNum -gt 0 ]
+while [ $vmNum -gt 1 ]
 do
     ((vmNum--))
     vmName="${vmNames[$vmNum]}"
