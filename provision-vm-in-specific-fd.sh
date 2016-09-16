@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Sample demonstration script to provision new VM in specific Azure Fault Domain - No warranties expressed or implied
+
 # set bash script options
 set -o nounset
 
