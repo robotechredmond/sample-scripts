@@ -43,7 +43,7 @@ backupContainerName="vhd-backup"
 backupAccountUri=$(azure storage account show --resource-group ${backupAccountRGName} --json ${backupAccountName} | jq -r '.primaryEndpoints.blob')
 backupAccountKey=$(azure storage account keys list --resource-group ${backupAccountRGName} --json ${backupAccountName} | jq -r '. [0].value')
 
-# specify source page blob (VHD) with at least one snapshot
+# specify source page blob (VHD) with at least one snapshot - for demo, just picks the first vhd page blob in source storage container
 
 sourceBlobName=$(azure storage blob list --account-name ${sourceAccountName} --account-key ${sourceAccountKey} --container ${sourceContainerName} --json | jq -r '. [0].name')
 backupBlobName="${sourceBlobName}"
