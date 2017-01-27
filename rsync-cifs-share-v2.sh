@@ -54,7 +54,7 @@ echo "s/.*/\\.\\/&\\/\\*/g" | sed -f - $sourceFolderList >$includeFile
 
 # replicate files to destination rsync server VM
 cd $sourcePath
-rsync --rsh="ssh" --rsync-path="rsync" --verbose --progress --temp-dir=$tmpPath -rlpgoDvh --delete --include-from=$includeFile $destUser@$destHost:$destPath
+rsync --rsh="ssh" --rsync-path="rsync" --verbose --progress --temp-dir=$tmpPath -rlDvh --no-perms --include-from=$includeFile $destUser@$destHost:$destPath
 if [[ $? != 0 ]]; then
     echo "ERROR: rsync failed for $sourcePath to $destHost" | logger -t rsync.cifs
 else
