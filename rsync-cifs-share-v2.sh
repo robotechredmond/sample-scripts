@@ -50,7 +50,7 @@ fi
 
 # build list of folders to include for rsync to remote host
 cd $sourcePath
-echo "s/.*/\\.\\/&\\/\\*/g" | sed -f - $sourceFolderList >$includeFile
+sed "s/\r//g" $sourceFolderList | sed "/^\s*$/d" | sed "s/.*/\\.\\/&\\/\\*/g" >$includeFile
 
 # replicate files to destination rsync server VM
 cd $sourcePath
