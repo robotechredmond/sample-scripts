@@ -50,11 +50,11 @@ fi
 
 # build list of folders to include for rsync to remote host
 cd $sourcePath
-sed "s/\r//g" $sourceFolderList | sed "/^\s*$/d" | sed "s/.*/\\.\\/&\\/\\*/g" >$includeFile
+sed "s/\r//g" $sourceFolderList | sed "/^\s*$/d" | sed "s/.*/\\/&\\/\\*\\*\\*/g" >$includeFile
 
 # replicate files to destination rsync server VM
 cd $sourcePath
-rsync --rsh="ssh" --rsync-path="rsync" --verbose --stats --temp-dir=$tmpPath -rlDvh --no-perms --include-from=$includeFile $destUser@$destHost:$destPath | logger -t rsync.cifs
+rsync --rsh="ssh" --rsync-path="rsync" --verbose --stats --temp-dir=$tmpPath -rlDvh --no-perms --include-from=$includeFile --exclude=* . $destUser@$destHost:$destPath | logger -t rsync.cifs
 if [[ $? != 0 ]]; then
     echo "ERROR: rsync failed for $sourcePath to $destHost" | logger -t rsync.cifs
 else
