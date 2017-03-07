@@ -15,7 +15,7 @@
 # limitations under the License.
 #--------------------------------------------------------------------------
 
-# Sample Azure CLI 2.0 commands for configuring ExpressRoute Private Peering with UltraPerformance VNET Gateways
+# Sample step-by-step Azure CLI 2.0 commands for configuring ExpressRoute Private Peering with UltraPerformance VNET Gateways
 
 # Install Azure CLI 2.0
 curl -L https://aka.ms/InstallAzureCli | bash
