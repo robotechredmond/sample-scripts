@@ -15,44 +15,48 @@
 # limitations under the License.
 #--------------------------------------------------------------------------
 
-# Sample Azure XPlat CLI commands for configuring ExpressRoute Private Peering with UltraPerformance VNET Gateways
+# Sample Azure CLI 2.0 commands for configuring ExpressRoute Private Peering with UltraPerformance VNET Gateways
+
+# Install Azure CLI 2.0
+curl -L https://aka.ms/InstallAzureCli | bash
+
+# Restart shell after initial installation of CLI 2.0
+exec -l $SHELL
 
 # Authenticate to Azure via Azure AD credentials
-azure login
-
-# Set config mode to ARM
-azure config mode arm
+az login
 
 # Select Azure Subscription
-azure account set "subscription-name"
+az account set --subscription "subscription-name-or-id"
 
 # Create new Resource Group for ExpressRoute circuit
-azure group create "expressroute-rg" --location "azure-region"
+az group create --name "expressroute-rg" --location "azure-region"
 
 # List the ExpressRoute providers to determine provider name, peering location and circuit bandwidth
-azure network express-route provider list
+az network express-route list-service-providers 
 
 # Provision ExpressRoute circuit
-azure network express-route circuit create "expressroute-circuit" --resource-group "expressroute-rg" --location "azure-region" --service-provider-name "expressroute-provider" --peering-location "peering-location" --bandwidth-in-mbps <bandwidth> --sku-family "Metereddata" --sku-tier "Standard"
+az network express-route create --name "expressroute-circuit" --resource-group "expressroute-rg" --location "azure-region" --provider "expressroute-provider" --peering-location "peering-location" --bandwidth <bandwidth-in-mbps> --sku-family "Metereddata" --sku-tier "Standard"
 
 # Share "Service Key" value with provider for provisioning circuit ... wait for confirmation from Service Provider before continuing
 
 # Get properties of ExpressRoute circuit - when "Provisioning state" equals "Provisioned" move forward with next step
-azure network express-route circuit show "expressroute-circuit" --resource-group "expressroute-rg"
+az network express-route show --name "expressroute-circuit" --resource-group "expressroute-rg"
 
 # Configure Azure Private Peering for ExpressRoute circuit
-azure network express-route peering create "azure-private-peering" --resource-group "expressroute-rg" --circuit-name "expressroute-circuit" --type "AzurePrivatePeering" --peer-asn <peer-asn-number> --primary-address-prefix "x.x.x.x/x" --secondary-address-prefix "x.x.x.x/x" --vlan-id <vlan_id> --shared-key "optional-MD5-hash-shared-key"
+az network express-route peering create --name "private-peering" --type "AzurePrivatePeering" --circuit-name "expressroute-circuit" --resource-group "expressroute-rg" --peer-asn <peer-asn-number> --primary-peer-subnet "x.x.x.x/30" --secondary-peer-subnet "x.x.x.x/30" --vlan-id <vlan_id> --shared-key "optional-key-for-generating-MD5-hash"
 
 # Get properties of Azure Private Peering
-azure network express-route peering "azure-private-peering" --resource-group "expressroute-rg" --circuit-name "expressroute-circuit"
+az network express-route peering show --name "private-peering" --circuit-name "expressroute-circuit" --resource-group "expressroute-rg"
 
 # Provision UltraPerformance ExpressRoute VNET Gateway
-azure group deployment create "gw-deployment-1" --resource-group "vnet-resource-group" --template-uri "https://raw.githubusercontent.com/robotechredmond/sample-templates/master/azure-expressroute-gw-ultraperf.json"
+az network public-ip create --name "vnet-gateway-1-ip" --resource-group "vnet-resource-group" --location "azure-region"
+az network vnet-gateway create --name "vnet-gateway-1" --resource-group "vnet-resource-group" --location "azure-region" --public-ip-address "vnet-gateway-1-ip" --vnet "vnet-name" --gateway-type "ExpressRoute" --sku "UltraPerformance"
 
 # Link ExpressRoute circuit to VNET Gateway in same subscription
-azure network vpn-connection create "vpn-connection-1" --resource-group "vnet-resource-group" --location "azure-region" --type "ExpressRoute" --vnet-gateway1 "vnet-gateway" --vnet-gateway1-group "vnet-resource-group" --peer-name "azure-private-peering" --peer-group "expressroute-rg"
+az network vpn-connection create --name "vpn-connection-1" --resource-group "vnet-resource-group" --location "azure-region" --vnet-gateway1 "vnet-gateway" --express-route-circuit2 "expressroute-circuit-resource-id"
 
 # Link ExpressRoute circuit to VNET Gateway in different subscription
-azure network express-route authorization create "expressroute-auth-1" --resource-group "expressroute-rg" --circuit-name "expressroute-circuit" --key "key-value"
-azure network express-route authorization show "expressroute-auth-1" --resource-group "expressroute-rg" --circuit-name "expressroute-circuit" 
-azure network vpn-connection create "vpn-connection-1" --resource-group "vnet-resource-group" --location "azure-region" --type "ExpressRoute" --vnet-gateway1 "vnet-gateway" --vnet-gateway1-group "vnet-resource-group" --peer-name "azure-private-peering" --peer-group "expressroute-rg" --authorization-key "auth-key"
+az network express-route auth create --name "expressroute-auth-1" --circuit-name "expressroute-circuit" --resource-group "expressroute-rg"
+az network express-route auth show --name "expressroute-auth-1" --resource-group "expressroute-rg" --circuit-name "expressroute-circuit" 
+az network vpn-connection create --name "vpn-connection-1" --resource-group "vnet-resource-group" --location "azure-region" --vnet-gateway1 "vnet-gateway" --express-route-circuit2 "expressroute-circuit-resource-id" --authorization-key "authorization-key"
