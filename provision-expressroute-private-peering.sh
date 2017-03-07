@@ -36,11 +36,11 @@ az group create --name "expressroute-rg" --location "azure-region"
 az network express-route list-service-providers 
 
 # Provision ExpressRoute circuit
-az network express-route create --name "expressroute-circuit" --resource-group "expressroute-rg" --location "azure-region" --provider "expressroute-provider" --peering-location "peering-location" --bandwidth <bandwidth-in-mbps> --sku-family "Metereddata" --sku-tier "Standard"
+az network express-route create --name "expressroute-circuit" --resource-group "expressroute-rg" --location "azure-region" --provider "expressroute-provider" --peering-location "peering-location" --bandwidth <bandwidth-in-mbps> --sku-family "MeteredData" --sku-tier "Standard"
 
-# Share "Service Key" value with provider for provisioning circuit ... wait for confirmation from Service Provider before continuing
-
-# Get properties of ExpressRoute circuit - when "Provisioning state" equals "Provisioned" move forward with next step
+# Get properties of the new ExpressRoute circuit
+# Share "serviceKey" value with provider for provisioning circuit
+# When "serviceProviderProvisioningState" equals "Provisioned" move forward with next step
 az network express-route show --name "expressroute-circuit" --resource-group "expressroute-rg"
 
 # Configure Azure Private Peering for ExpressRoute circuit
