@@ -43,20 +43,24 @@ az network express-route create --name "expressroute-circuit" --resource-group "
 # When "serviceProviderProvisioningState" equals "Provisioned" move forward with next step
 az network express-route show --name "expressroute-circuit" --resource-group "expressroute-rg"
 
-# Configure Azure Private Peering for ExpressRoute circuit
+# Configure Azure Private Peering for ExpressRoute circuit - once per ExpressRoute circuit
 az network express-route peering create --name "private-peering" --type "AzurePrivatePeering" --circuit-name "expressroute-circuit" --resource-group "expressroute-rg" --peer-asn <peer-asn-number> --primary-peer-subnet "x.x.x.x/30" --secondary-peer-subnet "x.x.x.x/30" --vlan-id <vlan_id> --shared-key "optional-key-for-generating-MD5-hash"
 
-# Get properties of Azure Private Peering
+# Get properties of Azure Private Peering - once per ExpressRoute circuit
 az network express-route peering show --name "private-peering" --circuit-name "expressroute-circuit" --resource-group "expressroute-rg"
 
-# Provision UltraPerformance ExpressRoute VNET Gateway
+# Create GatewaySubnet with /27 CIDR block on each VNET - once per VNET
+az network vnet subnet create --name "GatewaySubnet" --vnet-name "vnet-name" --resource-group "vnet-resource-group" --address-prefix "x.x.x.x/27"
+
+# Provision UltraPerformance ExpressRoute VNET Gateway on each VNET - once per VNET
 az network public-ip create --name "vnet-gateway-1-ip" --resource-group "vnet-resource-group" --location "azure-region"
 az network vnet-gateway create --name "vnet-gateway-1" --resource-group "vnet-resource-group" --location "azure-region" --public-ip-address "vnet-gateway-1-ip" --vnet "vnet-name" --gateway-type "ExpressRoute" --sku "UltraPerformance"
 
-# Link ExpressRoute circuit to VNET Gateway in same subscription
+# Link ExpressRoute circuit to VNET Gateway in same subscription - once per ExpressRoute circuit-to-VNET combination
 az network vpn-connection create --name "vpn-connection-1" --resource-group "vnet-resource-group" --location "azure-region" --vnet-gateway1 "vnet-gateway" --express-route-circuit2 "expressroute-circuit-resource-id"
 
-# Link ExpressRoute circuit to VNET Gateway in different subscription
+# Link ExpressRoute circuit to VNET Gateway in different subscription - once per ExpressRoute circuit-to-VNET combination
 az network express-route auth create --name "expressroute-auth-1" --circuit-name "expressroute-circuit" --resource-group "expressroute-rg"
 az network express-route auth show --name "expressroute-auth-1" --resource-group "expressroute-rg" --circuit-name "expressroute-circuit" 
+az account set --subscription "vnet-subscription-name-or-id"
 az network vpn-connection create --name "vpn-connection-1" --resource-group "vnet-resource-group" --location "azure-region" --vnet-gateway1 "vnet-gateway" --express-route-circuit2 "expressroute-circuit-resource-id" --authorization-key "authorization-key"
