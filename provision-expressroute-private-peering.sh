@@ -44,10 +44,10 @@ az network express-route create --name "expressroute-circuit" --resource-group "
 az network express-route show --name "expressroute-circuit" --resource-group "expressroute-rg"
 
 # Configure Azure Private Peering for ExpressRoute circuit - once per ExpressRoute circuit
-az network express-route peering create --name "private-peering" --type "AzurePrivatePeering" --circuit-name "expressroute-circuit" --resource-group "expressroute-rg" --peer-asn <peer-asn-number> --primary-peer-subnet "x.x.x.x/30" --secondary-peer-subnet "x.x.x.x/30" --vlan-id <vlan_id> --shared-key "optional-key-for-generating-MD5-hash"
+az network express-route peering create --peering-type "AzurePrivatePeering" --circuit-name "expressroute-circuit" --resource-group "expressroute-rg" --peer-asn <peer-asn-number> --primary-peer-subnet "x.x.x.x/30" --secondary-peer-subnet "x.x.x.x/30" --vlan-id <vlan_id> --shared-key "optional-key-for-generating-MD5-hash"
 
 # Get properties of Azure Private Peering - once per ExpressRoute circuit
-az network express-route peering show --name "private-peering" --circuit-name "expressroute-circuit" --resource-group "expressroute-rg"
+az network express-route peering show --name "AzurePrivatePeering" --circuit-name "expressroute-circuit" --resource-group "expressroute-rg"
 
 # Create GatewaySubnet with /27 CIDR block on each VNET - once per VNET
 az network vnet subnet create --name "GatewaySubnet" --vnet-name "vnet-name" --resource-group "vnet-resource-group" --address-prefix "x.x.x.x/27"
