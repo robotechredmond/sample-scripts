@@ -1,0 +1,470 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "adminUsername": {
+      "type": "string",
+      "metadata": {
+        "description": "Admin username"
+      }
+    },
+    "sshKeyData": {
+      "type": "string",
+      "metadata": {
+        "description": "SSH rsa public key file as a string."
+      }
+    },
+    "jumpBoxVmSize": {
+      "type": "string",
+      "metadata": {
+        "description": "JumpBox VM SKU"
+      }
+    },
+    "nodeVmSize": {
+      "type": "string",
+      "metadata": {
+        "description": "Node VM SKU.  Must support Premium Storage"
+      }
+    },
+    "jumpBoxDnsPrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "DNS Prefix for JumpBox"
+      }
+    },
+    "vmPrefix": {
+      "type": "string",
+      "defaultValue": "vm",
+      "metadata": {
+        "description": "Prefix to use for VM names"
+      }
+    },
+    "vnetAddressPrefix": {
+      "type": "string",
+      "defaultValue": "10.0.0.0/16",
+      "metadata": {
+        "description": "VNET prefix"
+      }
+    },
+    "adminSubnetAddressPrefix": {
+      "type": "string",
+      "defaultValue": "10.0.1.0/24",
+      "metadata": {
+        "description": "VNET prefix"
+      }
+    },
+    "nodeSubnetAddressPrefix": {
+      "type": "string",
+      "defaultValue": "10.0.2.0/24",
+      "metadata": {
+        "description": "VNET prefix"
+      }
+    },
+    "numberOfNodes": {
+      "type": "int",
+      "defaultValue": 3,
+      "metadata": {
+        "description": "Number of nodes"
+      }
+    },
+    "nodeStorageAccountSku": {
+      "type": "string",
+      "defaultValue": "Premium_LRS",
+      "metadata": {
+        "description": "Storage type"
+      }
+    },
+    "jumpBoxStorageAccountSku": {
+      "type": "string",
+      "defaultValue": "Standard_LRS",
+      "metadata": {
+        "description": "Storage type"
+      }
+    },
+    "imagePublisher": {
+      "type": "string",
+      "metadata": {
+        "description": "Publisher"
+      }
+    },
+    "imageOffer": {
+      "type": "string",
+      "metadata": {
+        "description": "Image Offer"
+      }
+    },
+    "imageSku": {
+      "type": "string",
+      "metadata": {
+        "description": "image SKU"
+      }
+    },
+    "nodeDataDiskSizeGB": {
+      "type": "int",
+      "metadata": {
+        "description": "DataDiskSize"
+      }
+    },
+    "dataDiskVhdUrl": {
+      "type": "string",
+      "metadata": {
+        "description": "URL to VHD as source for data drives"
+      }
+    }
+
+  },
+
+  "variables": {
+
+    "managedDiskApiVersion": "2016-04-30-preview",
+    "apiVersion": "2015-06-15",
+
+    "seedSnapshotName": "SeedManagedDiskFromVhd",
+    "seedSnapshotRef": "[resourceId('Microsoft.Compute/snapshots', variables('seedSnapshotName'))]",
+
+    "vnetName": "VNet",
+    "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('vnetName'))]",
+    "adminSubnetName": "AdminSubnet",
+    "adminSubnetRef": "[concat(variables('vnetID'),'/subnets/',variables('adminSubnetName'))]",
+    "nodeSubnetName": "NodeSubnet",
+    "nodeSubnetRef": "[concat(variables('vnetID'),'/subnets/',variables('nodeSubnetName'))]",
+
+    "sshKeyPath": "[concat('/home/',parameters('adminUserName'),'/.ssh/authorized_keys')]",
+
+    "jumbBoxPublicIPAddressName": "jumbBoxPublicIPAddress",
+    "jumpBoxPublicIPAddressType": "Dynamic"
+  },
+  "resources": [
+
+    {
+      "apiVersion": "[variables('apiVersion')]",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "name": "[variables('jumbBoxPublicIPAddressName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "publicIPAllocationMethod": "[variables('jumpBoxPublicIPAddressType')]",
+        "dnsSettings": {
+          "domainNameLabel": "[parameters('jumpBoxDnsPrefix')]"
+        }
+      },
+      "tags": {
+        "displayName": "JumpBoxPublicIP"
+      }
+    },
+    {
+      "apiVersion": "[variables('managedDiskApiVersion')]",
+      "type": "Microsoft.Compute/availabilitySets",
+      "name": "AvailabilitySet",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "managed": "true",
+        "platformFaultDomainCount": "3",
+        "platformUpdateDomainCount": "18"
+      },
+      "tags": {
+        "displayName": "AvailabilitySet"
+      }
+    },
+    {
+      "apiVersion": "[variables('apiVersion')]",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "JumpBoxNsg",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "ssh_rule",
+            "properties": {
+              "description": "Allow SSH",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "22",
+              "sourceAddressPrefix": "Internet",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 100,
+              "direction": "Inbound"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "[variables('apiVersion')]",
+      "type": "Microsoft.Network/virtualNetworks",
+      "name": "[variables('vnetName')]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "Microsoft.Network/networkSecurityGroups/JumpBoxNsg"
+      ],
+      "tags": {
+        "displayName": "VirtualNetwork"
+      },
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[parameters('vnetAddressPrefix')]"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[variables('adminSubnetName')]",
+            "properties": {
+              "addressPrefix": "[parameters('adminSubnetAddressPrefix')]",
+              "networkSecurityGroup": {
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups','JumpBoxNsg')]"
+              }
+            }
+          },
+          {
+            "name": "[variables('nodeSubnetName')]",
+            "properties": {
+              "addressPrefix": "[parameters('nodeSubnetAddressPrefix')]"
+            }
+          }
+        ]
+      }
+    },
+
+    {
+      "apiVersion": "[variables('apiVersion')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[concat(parameters('vmPrefix'), copyindex(), 'Nic')]",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "displayName": "NetworkInterface"
+      },
+      "copy": {
+        "name": "nicLoop",
+        "count": "[parameters('numberOfNodes')]"
+      },
+      "dependsOn": [
+        "[concat('Microsoft.Network/virtualNetworks/', variables('vnetName'))]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[variables('nodeSubnetRef')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Compute/snapshots",
+      "tags": {
+        "displayName": "SeedSnapshotFromVhd"
+      },
+      "apiVersion": "[variables('managedDiskApiVersion')]",
+      "name": "[variables('seedSnapshotName')]",
+      "apiVersion": "2016-04-30-preview",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "creationData": {
+          "createOption": "Import",
+          "sourceUri": "[parameters('dataDiskVhdUrl')]"
+        },
+        "accountType": "[parameters('nodeStorageAccountSku')]",
+        "diskSizeGB": "[parameters('nodeDataDiskSizeGB')]"
+      }
+    },
+    {
+      "type": "Microsoft.Compute/disks",
+      "apiVersion": "[variables('managedDiskApiVersion')]",
+      "tags": {
+        "displayName": "DataDisks"
+      },
+      "dependsOn": [
+        "[variables('seedSnapshotRef')]"
+      ],
+      "copy": {
+        "name": "managedDiskLoop",
+        "count": "[parameters('numberOfNodes')]"
+      },
+      "name": "[concat(parameters('vmPrefix'), copyindex(),'-datadisk1')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "creationData": {
+          "createOption": "Copy",
+          "sourceResourceId": "[variables('seedSnapshotRef')]"
+        },
+        "accountType": "[parameters('nodeStorageAccountSku')]",
+        "diskSizeGB": "[parameters('nodeDataDiskSizeGB')]"
+      }
+    },
+
+    {
+      "apiVersion": "[variables('managedDiskApiVersion')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[concat(parameters('vmPrefix'), copyindex())]",
+      "copy": {
+        "name": "virtualMachineLoop",
+        "count": "[parameters('numberOfNodes')]"
+      },
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "displayName": "ClusterNodeVMs"
+      },
+      "dependsOn": [
+        "[concat('Microsoft.Network/networkInterfaces/', parameters('vmPrefix'), copyindex(),'nic')]",
+        "Microsoft.Compute/availabilitySets/AvailabilitySet",
+        "[resourceId('Microsoft.Compute/disks', concat(parameters('vmPrefix'), copyindex(),'-datadisk1'))]"
+      ],
+      "properties": {
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets','AvailabilitySet')]"
+        },
+        "hardwareProfile": {
+          "vmSize": "[parameters('nodeVmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[concat(parameters('vmPrefix'), copyIndex())]",
+          "adminUsername": "[parameters('adminUserName')]",
+          "linuxConfiguration": {
+            "disablePasswordAuthentication": "true",
+            "ssh": {
+              "publicKeys": [
+                {
+                  "path": "[variables('sshKeyPath')]",
+                  "keyData": "[parameters('sshKeyData')]"
+                }
+              ]
+            }
+          }
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[parameters('imagePublisher')]",
+            "offer": "[parameters('imageOffer')]",
+            "sku": "[parameters('imageSku')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "[concat(concat(parameters('vmPrefix'), copyIndex()),'-osdisk')]",
+            "managedDisk": {
+              "storageAccountType": "[parameters('nodeStorageAccountSku')]"
+
+            },
+            "caching": "None",
+            "createOption": "FromImage"
+          },
+          "dataDisks": [
+            {
+              "lun": 0,
+              "managedDisk": {
+                "id": "[resourceId('Microsoft.Compute/disks', concat(parameters('vmPrefix'), copyindex(),'-datadisk1'))]"
+              },
+              "caching": "None",
+              "createOption": "Attach"
+            }
+          ]
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(parameters('vmPrefix'),copyindex(),'nic'))]"
+            }
+          ]
+        }
+      }
+    },
+
+
+
+    {
+      "apiVersion": "[variables('apiVersion')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "JumpboxNic",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "displayName": "NetworkInterface"
+      },
+      "dependsOn": [
+        "[concat('Microsoft.Network/virtualNetworks/', variables('vnetName'))]",
+        "[concat('Microsoft.Network/publicIPAddresses/', variables('jumbBoxPublicIPAddressName'))]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('jumbBoxPublicIPAddressName'))]"
+              },
+              "subnet": {
+                "id": "[variables('adminSubnetRef')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "[variables('managedDiskApiVersion')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "Jumpbox",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "displayName": "JumpBoxVM"
+      },
+      "dependsOn": [
+        "Microsoft.Network/networkInterfaces/jumpboxNic"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('jumpBoxVmSize')]"
+        },
+        "osProfile": {
+          "computerName": "Jumpbox",
+          "adminUsername": "[parameters('adminUserName')]",
+          "linuxConfiguration": {
+            "disablePasswordAuthentication": "true",
+            "ssh": {
+              "publicKeys": [
+                {
+                  "path": "[variables('sshKeyPath')]",
+                  "keyData": "[parameters('sshKeyData')]"
+                }
+              ]
+            }
+          }
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[parameters('imagePublisher')]",
+            "offer": "[parameters('imageOffer')]",
+            "sku": "[parameters('imageSku')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "Jumpbox-osdisk",
+            "managedDisk": {
+              "storageAccountType": "[parameters('jumpBoxStorageAccountSku')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces','jumpboxNic')]"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "resource-group-url": {
+      "type": "string",
+      "value": "[concat('https://ms.portal.azure.com/#asset/HubsExtension/ResourceGroups/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name)]"
+    }
+  }
+}
