@@ -19,12 +19,13 @@ az feature show \
 
 # Define resource name values
 
-resourceGroup="asg01-rg"
+resourceGroup="asg02-rg"
 location="westcentralus"
-nsgName="nsg01"
-vnetName="vnet01"
-nicName="nic01"
-vmName="vm01"
+nsgName="nsg02"
+vnetName="vnet02"
+nicName="nic02"
+publicIpName="nic02-pip"
+vmName="vm02"
 adminUser="azureadmin"
 
 # Create a new Resource Group
@@ -112,6 +113,14 @@ az network vnet subnet update \
   --vnet-name $vnetName \
   --network-security-group $nsgName
 
+# Create Public IP resource
+
+az network public-ip create \
+  --name $publicIpName \
+  --resource-group $resourceGroup \
+  --location $location \
+  --allocation-method dynamic
+
 # Create new NIC resource and assign to Application Security Groups - up to 10 ASGs per ipConfig
 
 az network nic create \
@@ -119,6 +128,7 @@ az network nic create \
   --name $nicName \
   --vnet-name $vnetName \
   --subnet default \
+  --public-ip-address $public \
   --location $location \
   --application-security-groups "WebServers" "WinServers"
 
