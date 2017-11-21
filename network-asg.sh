@@ -34,7 +34,7 @@ az group create \
   --name $resourceGroup \
   --location $location
 
-# Create Application Security Groups
+# Create Application Security Groups - during Preview only available in West Central US region
 
 az network asg create \
   --resource-group $resourceGroup \
@@ -128,7 +128,7 @@ az network nic create \
   --name $nicName \
   --vnet-name $vnetName \
   --subnet default \
-  --public-ip-address $public \
+  --public-ip-address $publicIpName \
   --location $location \
   --application-security-groups "WebServers" "WinServers"
 
