@@ -70,9 +70,8 @@ AcrName        AcrLoginServer
 k8s01registry  k8s01registry.azurecr.io
 
 az acr credential show --name=k8s01registry --query=passwords[0].value --output=tsv
-x+iGmz5HDsjX=XW/+CAPl+Hx8N1IloZ2
 
-docker login --username=k8s01registry --password=x+iGmz5HDsjX=XW/+CAPl+Hx8N1IloZ2 k8s01registry.azurecr.io
+docker login --username=k8s01registry --password=<your-acr-credential> k8s01registry.azurecr.io
 kubectl create secret docker-registry regsecret --docker-server=<your-registry-server> --docker-username=<your-name> --docker-password=<your-pword> --docker-email=<your-email>
 kubectl get secret regsecret --output=yaml
 
